@@ -1,17 +1,432 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ToDoList</title>
-    <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    </style>
+<title>Todo List</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:#f5f5f5;
+    font-family:"Microsoft JhengHei",sans-serif;
+    padding:30px;
+}
+
+.container{
+    max-width:700px;
+    margin:auto;
+    background:white;
+    padding:25px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,.1);
+}
+
+h1{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+/* 輸入區 */
+
+.input-area{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.input-area input{
+    flex:1;
+    padding:10px;
+    font-size:16px;
+}
+
+.input-area select{
+    padding:10px;
+}
+
+.input-area button{
+    padding:10px 20px;
+}
+
+/* 篩選按鈕 */
+
+.filter-area{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.filter-area button{
+    padding:8px 16px;
+}
+
+/* 未完成數量 */
+
+.info{
+    display:flex;
+    justify-content:flex-end;
+    margin-bottom:20px;
+    font-weight:bold;
+}
+
+/* 清單 */
+
+ul{
+    list-style:none;
+}
+
+li{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px;
+    border-bottom:1px solid #ddd;
+}
+
+.left{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.category{
+    background:#eee;
+    padding:3px 8px;
+    border-radius:5px;
+    font-size:12px;
+}
+
+.done{
+    text-decoration:line-through;
+    color:gray;
+}
+
+.delete-btn{
+    background:#ff5c5c;
+    color:white;
+    border:none;
+    padding:6px 12px;
+    cursor:pointer;
+    border-radius:5px;
+}
+
+.delete-btn:hover{
+    opacity:.8;
+}
+
+.add-btn{
+    background:#4caf50;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+
+.filter-area button{
+    cursor:pointer;
+}
+
+</style>
 </head>
+
 <body>
-    <script>
-        
-    </script>
-    
+
+<div class="container">
+
+    <h1>📋 Todo List</h1>
+
+    <!-- 輸入區 -->
+    <div class="input-area">
+
+        <input
+            type="text"
+            id="todoInput"
+            placeholder="請輸入待辦事項">
+
+        <select id="todoCategory">
+            <option value="工作">工作</option>
+            <option value="個人">個人</option>
+        </select>
+
+        <button
+            id="addBtn"
+            class="add-btn">
+            新增
+        </button>
+
+    </div>
+
+    <!-- 篩選區 -->
+    <div class="filter-area">
+
+        <button data-filter="all">
+            全部
+        </button>
+
+        <button data-filter="done">
+            已完成
+        </button>
+
+        <button data-filter="undo">
+            未完成
+        </button>
+
+    </div>
+
+    <!-- 未完成數量 -->
+    <div class="info">
+
+        未完成：
+        <span id="count">0</span>
+        筆
+
+    </div>
+
+    <!-- 清單 -->
+    <ul id="todoList"></ul>
+
+</div>
+
+<script>
+
+/* -------------------
+   讀取 localStorage
+------------------- */
+
+let todos =
+JSON.parse(
+    localStorage.getItem("todos")
+) || [];
+
+/* -------------------
+   篩選狀態
+------------------- */
+
+let currentFilter = "all";
+
+/* -------------------
+   DOM
+------------------- */
+
+const todoInput =
+document.querySelector("#todoInput");
+
+const todoCategory =
+document.querySelector("#todoCategory");
+
+const addBtn =
+document.querySelector("#addBtn");
+
+const todoList =
+document.querySelector("#todoList");
+
+const count =
+document.querySelector("#count");
+
+/* -------------------
+   儲存資料
+------------------- */
+
+function saveData(){
+
+    localStorage.setItem(
+        "todos",
+        JSON.stringify(todos)
+    );
+
+}
+
+/* -------------------
+   新增待辦事項
+------------------- */
+
+addBtn.addEventListener("click", () => {
+
+    let text =
+    todoInput.value.trim();
+
+    if(text === ""){
+
+        alert("請輸入待辦事項");
+
+        return;
+    }
+
+    let todo = {
+
+        text:text,
+
+        category:
+        todoCategory.value,
+
+        done:false
+
+    };
+
+    todos.push(todo);
+
+    saveData();
+
+    render();
+
+    todoInput.value = "";
+
+});
+
+/* -------------------
+   切換完成狀態
+------------------- */
+
+function toggleTodo(index){
+
+    todos[index].done =
+    !todos[index].done;
+
+    saveData();
+
+    render();
+
+}
+
+/* -------------------
+   刪除
+------------------- */
+
+function deleteTodo(index){
+
+    if(confirm("確定刪除嗎？")){
+
+        todos.splice(index,1);
+
+        saveData();
+
+        render();
+
+    }
+
+}
+
+/* -------------------
+   更新未完成數量
+------------------- */
+
+function updateCount(){
+
+    let undoneTodos =
+    todos.filter(item => !item.done);
+
+    count.textContent =
+    undoneTodos.length;
+
+}
+
+/* -------------------
+   渲染畫面
+------------------- */
+
+function render(){
+
+    let showTodos = [];
+
+    if(currentFilter === "all"){
+
+        showTodos = todos;
+
+    }else if(currentFilter === "done"){
+
+        showTodos =
+        todos.filter(
+            item => item.done
+        );
+
+    }else{
+
+        showTodos =
+        todos.filter(
+            item => !item.done
+        );
+
+    }
+
+    let str = "";
+
+    showTodos.forEach((item) => {
+
+        let realIndex =
+        todos.indexOf(item);
+
+        str += `
+
+        <li>
+
+            <div class="left">
+
+                <input
+                    type="checkbox"
+                    ${item.done ? "checked" : ""}
+                    onchange="toggleTodo(${realIndex})"
+                >
+
+                <span
+                    class="${item.done ? "done" : ""}">
+                    ${item.text}
+                </span>
+
+                <span class="category">
+                    ${item.category}
+                </span>
+
+            </div>
+
+            <button class="delete-btn" onclick="deleteTodo(${realIndex})">
+                刪除
+            </button>
+
+        </li>
+
+        `;
+
+    });
+
+    todoList.innerHTML = str;
+
+    updateCount();
+
+}
+
+/* -------------------
+   篩選功能
+------------------- */
+
+document
+.querySelectorAll("[data-filter]")
+.forEach(btn => {
+
+    btn.addEventListener("click", function(){
+
+        currentFilter =
+        this.dataset.filter;
+
+        render();
+
+    });
+
+});
+
+/* -------------------
+   初始載入
+------------------- */
+
+render();
+
+</script>
+
 </body>
 </html>
